@@ -1,18 +1,18 @@
-@del example.o
-@del example.nes
-@del example.map.txt
-@del example.labels.txt
-@del example.nes.ram.nl
-@del example.nes.0.nl
-@del example.nes.1.nl
-@del example.nes.dbg
+@del NESDungeone.o
+@del NESDungeone.nes
+@del NESDungeone.map.txt
+@del NESDungeone.labels.txt
+@del NESDungeone.nes.ram.nl
+@del NESDungeone.nes.0.nl
+@del NESDungeone.nes.1.nl
+@del NESDungeone.nes.dbg
 @echo.
 @echo Compiling...
-\cc65\bin\ca65 example.s -g -o example.o
+\cc65\bin\ca65 NESDungeone.s -g -o NESDungeone.o
 @IF ERRORLEVEL 1 GOTO failure
 @echo.
 @echo Linking...
-\cc65\bin\ld65 -o example.nes -C example.cfg example.o -m example.map.txt -Ln example.labels.txt --dbgfile example.nes.dbg
+\cc65\bin\ld65 -o NESDungeone.nes -C NESDungeone.cfg NESDungeone.o -m NESDungeone.map.txt -Ln NESDungeone.labels.txt --dbgfile NESDungeone.nes.dbg
 @IF ERRORLEVEL 1 GOTO failure
 @echo.
 @echo Success!
