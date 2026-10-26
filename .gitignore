@@ -1,0 +1,9 @@
+*.nes
+*.o
+*.nes.dbg
+*.labels.txt
+*.map.txt
+*.zip
+*.sublime-workspace
+*.deb
+*.dbg
