@@ -213,7 +213,7 @@ cont_render:
 	sta SPRITE_DMA
 
 	; transfer current palette to PPU
-	lda #%10001000 ; set horizontal nametable increment
+	lda #%10011000 ; set horizontal nametable increment
 	sta PPU_CONTROL 
 	lda PPU_STATUS
 	lda #$3F ; set PPU address to $3F00
@@ -271,22 +271,26 @@ paletteloop:
  	; clear 1st name table
  	jsr clear_nametable
 
- 	; draw some text on the screen
- 	lda PPU_STATUS ; reset address latch
- 	lda #$20 ; set PPU address to $208A (Row = 4, Column = 10)
+ 	; Load our custom 160x160 full screen nametable layout
+ 	lda PPU_STATUS        ; reset address latch
+ 	lda #$20              ; set PPU address to start of Nametable 0 ($2000)
  	sta PPU_VRAM_ADDRESS2
- 	lda #$8A
+ 	lda #$00
  	sta PPU_VRAM_ADDRESS2
 
  	ldx #0
-textloop:
-	lda welcome_txt, x
-	sta PPU_VRAM_IO
-	inx
-	cmp #0
-	beq :+
-	jmp textloop
- 	:
+nametable_loop:
+ 	lda default_nametable, x       ; First 256 bytes
+ 	sta PPU_VRAM_IO
+ 	lda default_nametable+256, x   ; Second 256 bytes
+ 	sta PPU_VRAM_IO
+ 	lda default_nametable+512, x   ; Third 256 bytes
+ 	sta PPU_VRAM_IO
+ 	lda default_nametable+768, x   ; Fourth 256 bytes (includes attributes!)
+ 	sta PPU_VRAM_IO
+ 	inx
+ 	bne nametable_loop           ; Loops 256 times to transfer all 1024 bytes
+
 
  	; place our bat sprite on the screen
  	lda #180
@@ -446,14 +450,9 @@ loop:
 
 .segment "RODATA"
 default_palette:
-.byte $0F,$15,$26,$37 ; bg0 purple/pink
-.byte $0F,$09,$19,$29 ; bg1 green
-.byte $0F,$01,$11,$21 ; bg2 blue
-.byte $0F,$00,$10,$30 ; bg3 greyscale
-.byte $0F,$18,$28,$38 ; sp0 yellow
-.byte $0F,$14,$24,$34 ; sp1 purple
-.byte $0F,$1B,$2B,$3B ; sp2 teal
-.byte $0F,$12,$22,$32 ; sp3 marine
+.incbin "test.pal"
+default_nametable:
+.incbin "test.nam"
 
 welcome_txt:
 .byte 'W','E','L','C', 'O', 'M', 'E', 0
