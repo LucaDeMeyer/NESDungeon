@@ -272,8 +272,8 @@ paletteloop:
  	jsr clear_nametable
 
  	; Load our custom 160x160 full screen nametable layout
- 	lda PPU_STATUS        ; reset address latch
- 	lda #$20              ; set PPU address to start of Nametable 0 ($2000)
+ 	lda PPU_STATUS	; reset address latch
+ 	lda #$20		; set PPU address to start of Nametable 0 ($2000)
  	sta PPU_VRAM_ADDRESS2
  	lda #$00
  	sta PPU_VRAM_ADDRESS2
@@ -286,33 +286,13 @@ nametable_loop:
  	sta PPU_VRAM_IO
  	lda default_nametable+512, x   ; Third 256 bytes
  	sta PPU_VRAM_IO
- 	lda default_nametable+768, x   ; Fourth 256 bytes (includes attributes!)
+ 	lda default_nametable+768, x   ; Fourth 256 bytes (including attributes)
  	sta PPU_VRAM_IO
  	inx
- 	bne nametable_loop           ; Loops 256 times to transfer all 1024 bytes
+ 	bne nametable_loop	; Loops 256 times to transfer all 1024 bytes
 
 
- 	; place our bat sprite on the screen
- 	lda #180
- 	sta oam ; set Y
- 	lda #120
- 	sta oam + 3 ; set X
- 	lda #1
- 	sta oam + 1 ; set pattern
- 	lda #0
- 	sta oam + 2 ; set attributes
- 	; place our ball sprite on the screen
- 	lda #124
- 	sta oam + (1 * 4) ; set Y
- 	sta oam + (1 * 4) + 3 ; set X
- 	lda #2
- 	sta oam + (1 * 4) + 1 ; set patter + (1 * 4)n
- 	lda #0
- 	sta oam + (1 * 4) + 2 ; set atttibutes
- 	; set the ball velocity
- 	lda #1
- 	sta d_x
- 	sta d_y
+ 	; render here (might need extra level load system)
 
  	; get the screen to render
  	jsr ppu_update
@@ -324,60 +304,6 @@ nametable_loop:
  	bne mainloop
  	; read the gamepad
  	jsr gamepad_poll
- 	; now move the bat if left or right pressed
- 	lda gamepad
- 	and #PAD_L
- 	beq NOT_GAMEPAD_LEFT
- 		; gamepad has been pressed left
- 		lda oam + 3 ; get current X
- 		cmp #0
- 		beq NOT_GAMEPAD_LEFT
- 		sec
- 		sbc #1
- 		sta oam + 3 ; change X to the left
- NOT_GAMEPAD_LEFT:
- 	lda gamepad
- 	and #PAD_R
- 	beq NOT_GAMEPAD_RIGHT
- 		; gamepad has been pressed right
- 		lda oam + 3 ; get current X
- 		cmp #248
- 		beq NOT_GAMEPAD_RIGHT
- 		clc
- 		adc #1
- 		sta oam + 3 ; change X to the left
- NOT_GAMEPAD_RIGHT:
- 	; now move our ball
- 	lda oam + (1 * 4) + 0 ; get the current Y
-	clc
-	adc d_y ; add the Y velocity
- 	sta oam + (1 * 4) + 0 ; write the change
- 	cmp #0 ; have we hit the top border
- 	bne NOT_HITTOP
- 		lda #1 ; reverse direction
- 		sta d_y
- NOT_HITTOP:
- 	lda oam + (1 * 4) + 0
- 	cmp #210 ; have we hit the bottom border
- 	bne NOT_HITBOTTOM
- 		lda #$FF ; reverse direction (-1)
- 		sta d_y
- NOT_HITBOTTOM:
- 	lda oam + (1 * 4) + 3 ; get the current x
- 	clc
- 	adc d_x	; add the X velocity
- 	sta oam + (1 * 4) + 3
- 	cmp #0 ; have we hit the left border
- 	bne NOT_HITLEFT
- 		lda #1 ; reverse direction
- 		sta d_x
- NOT_HITLEFT:
- 	lda oam + (1 * 4) + 3
- 	cmp #248 ; have we hot the right border
- 	bne NOT_HITRIGHT
- 		lda #$FF ; reverse direction (-1)
- 		sta d_x
- NOT_HITRIGHT:
 
  	; ensure our changes are rendered
  	lda #1
@@ -454,5 +380,58 @@ default_palette:
 default_nametable:
 .incbin "test.nam"
 
-welcome_txt:
-.byte 'W','E','L','C', 'O', 'M', 'E', 0
+
+; 	; now move the bat if left or right pressed
+;  	lda gamepad
+;  	and #PAD_L
+;  	beq NOT_GAMEPAD_LEFT
+;  		; gamepad has been pressed left
+;  		lda oam + 3 ; get current X
+;  		cmp #0
+;  		beq NOT_GAMEPAD_LEFT
+;  		sec
+;  		sbc #1
+;  		sta oam + 3 ; change X to the left
+;  NOT_GAMEPAD_LEFT:
+;  	lda gamepad
+;  	and #PAD_R
+;  	beq NOT_GAMEPAD_RIGHT
+;  		; gamepad has been pressed right
+;  		lda oam + 3 ; get current X
+;  		cmp #248
+;  		beq NOT_GAMEPAD_RIGHT
+;  		clc
+;  		adc #1
+;  		sta oam + 3 ; change X to the left
+;  NOT_GAMEPAD_RIGHT:
+;  	; now move our ball
+;  	lda oam + (1 * 4) + 0 ; get the current Y
+; 	clc
+; 	adc d_y ; add the Y velocity
+;  	sta oam + (1 * 4) + 0 ; write the change
+;  	cmp #0 ; have we hit the top border
+;  	bne NOT_HITTOP
+;  		lda #1 ; reverse direction
+;  		sta d_y
+;  NOT_HITTOP:
+;  	lda oam + (1 * 4) + 0
+;  	cmp #210 ; have we hit the bottom border
+;  	bne NOT_HITBOTTOM
+;  		lda #$FF ; reverse direction (-1)
+;  		sta d_y
+;  NOT_HITBOTTOM:
+;  	lda oam + (1 * 4) + 3 ; get the current x
+;  	clc
+;  	adc d_x	; add the X velocity
+;  	sta oam + (1 * 4) + 3
+;  	cmp #0 ; have we hit the left border
+;  	bne NOT_HITLEFT
+;  		lda #1 ; reverse direction
+;  		sta d_x
+;  NOT_HITLEFT:
+;  	lda oam + (1 * 4) + 3
+;  	cmp #248 ; have we hot the right border
+;  	bne NOT_HITRIGHT
+;  		lda #$FF ; reverse direction (-1)
+;  		sta d_x
+;  NOT_HITRIGHT:
