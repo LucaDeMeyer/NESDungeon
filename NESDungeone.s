@@ -376,9 +376,9 @@ loop:
 
 .segment "RODATA"
 default_palette:
-.incbin "test.pal"
+.incbin "NESDungeone.pal"
 default_nametable:
-.incbin "test.nam"
+.incbin "NESDungeone.nam"
 
 
 ; 	; now move the bat if left or right pressed
