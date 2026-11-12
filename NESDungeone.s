@@ -2,8 +2,10 @@
 ; Main Game File
 ;*****************************************************************
 
-.include "NESLib.s"
-
+.include "NESLib.inc"
+.include "Player.inc"
+ 
+.export main   
 ;*****************************************************************
 ; Import both the background and sprite character sets
 ;*****************************************************************
@@ -51,7 +53,7 @@ nametable_loop:
 	bne nametable_loop	; Loops 256 times to transfer all 1024 bytes
 
 	; render here (might need extra level load system)
-
+	jsr init_player
 	; get the screen to render
 	jsr ppu_update
 
@@ -62,7 +64,7 @@ mainloop:
 	bne mainloop
 	; read the gamepad
 	jsr gamepad_poll
-
+	jsr update_player
 	; ensure our changes are rendered
 	lda #1
 	sta nmi_ready

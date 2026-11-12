@@ -8,11 +8,13 @@
 @del NESDungeone.nes.dbg
 @echo.
 @echo Compiling...
+\cc65\bin\ca65 NESLib.s -g -o NESLib.o
+\cc65\bin\ca65 Player.s -g -o Player.o
 \cc65\bin\ca65 NESDungeone.s -g -o NESDungeone.o
 @IF ERRORLEVEL 1 GOTO failure
 @echo.
 @echo Linking...
-\cc65\bin\ld65 -o NESDungeone.nes -C NESDungeone.cfg NESDungeone.o -m NESDungeone.map.txt -Ln NESDungeone.labels.txt --dbgfile NESDungeone.nes.dbg
+\cc65\bin\ld65 -o NESDungeone.nes -C NESDungeone.cfg NESLib.o Player.o NESDungeone.o -m NESDungeone.map.txt -Ln NESDungeone.labels.txt --dbgfile NESDungeone.nes.dbg
 @IF ERRORLEVEL 1 GOTO failure
 @echo.
 @echo Success!
