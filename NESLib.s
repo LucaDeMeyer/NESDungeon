@@ -1,6 +1,5 @@
 ;*****************************************************************
 ; NESLib.s - assembled ONCE. Header, vectors, reset, NMI, helpers.
-; Other files should include NESLib.inc, not this file.
 ;*****************************************************************
 .include "NESLib.inc"
 
