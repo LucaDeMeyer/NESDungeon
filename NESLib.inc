@@ -40,7 +40,7 @@ PAD_R      = $80
 ; Shared symbols defined in NESLib.s
 ; (.global = "export it if defined in this file, otherwise import it")
 ;*****************************************************************
-.globalzp nmi_ready, gamepad          ; zero page variables
+.globalzp nmi_ready, gamepad, gamepad_old          ; zero page variables
 .global   oam, palette                ; RAM buffers
 .global   ppu_update, ppu_off         ; routines
 .global   clear_nametable, gamepad_poll

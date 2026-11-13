@@ -39,6 +39,7 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 nmi_ready:		.res 1 ; set to 1 to push a PPU frame update, 
 					   ;        2 to turn rendering off next NMI
 gamepad:		.res 1 ; stores the current gamepad values
+gamepad_old:		.res 1 ; stores the previous gamepad values
 ;*****************************************************************
 ; Sprite OAM Data area - copied to VRAM in NMI routine
 ;*****************************************************************

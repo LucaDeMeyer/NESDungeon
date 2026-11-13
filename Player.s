@@ -13,6 +13,7 @@ ANIM_DELAY = 20             ; game frames to show each animation frame (60 per s
 
 ANIM_IDLE = 0
 ANIM_WALK = 4
+ANIM_ATTACK = 8
 
 anim_base:  .res 1          ; start offset of the current animation (ANIM_IDLE / ANIM_WALK)
 anim_frame: .res 1          ; current frame within that animation, 0-3
@@ -20,13 +21,14 @@ anim_timer: .res 1          ; game frames until the next animation frame
 
 player_flip:    .res 1 ;0 = facing right, $40 = facing left (OAM flip bit)
 
+player_state:   .res 1  ; 0 = Normal, 1 = Attacking
 .segment "RODATA"
 ; tile ID of each of the 4 sprites, per animation frame
-            ;Idle                       ;walking
-frame_tl: .byte $00, $02, $04, $06,   $20, $22, $24, $26
-frame_tr: .byte $01, $03, $05, $07,   $21, $23, $25, $27
-frame_bl: .byte $10, $12, $14, $16,   $30, $32, $34, $36
-frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
+            ;Idle                       ;walking            ;attack
+frame_tl: .byte $00, $02, $04, $06,   $20, $22, $24, $26,   $40, $42, $44, $46
+frame_tr: .byte $01, $03, $05, $07,   $21, $23, $25, $27,   $41, $43, $45, $47
+frame_bl: .byte $10, $12, $14, $16,   $30, $32, $34, $36,   $50, $52, $54, $56
+frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
 
 .segment "CODE"
 .proc init_player
@@ -70,14 +72,17 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
 .segment "CODE"
 ;Move and draw the player 
 .proc update_player
-    jsr move_player
+    jsr check_input 
     jsr Update_sprite
     rts
 .endproc
 
 .segment "CODE"
-.proc move_player
-       ; Check Right
+.proc check_input
+    ;STATE CHECK
+    lda player_state
+    bne skip_movement       ; If state is NOT 0 (attacking), skip reading inputs
+    ; Check Right
     lda gamepad
     and #PAD_R
     beq not_right
@@ -88,6 +93,7 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
         adc player_speed
         sta player_x
 not_right:
+
     ; Check Left
     lda gamepad
     and #PAD_L
@@ -100,7 +106,7 @@ not_right:
         sta player_x
 not_left:
 
-        ; Check Up
+    ; Check Up
     lda gamepad
     and #PAD_U
     beq not_up
@@ -109,6 +115,7 @@ not_left:
         sbc player_speed
         sta player_y
 not_up:
+
     ; Check Down
     lda gamepad
     and #PAD_D
@@ -118,8 +125,18 @@ not_up:
         adc player_speed
         sta player_y
 not_down:
+    ; Check A 
+    lda gamepad
+    and #PAD_A
+    beq not_a
+    lda gamepad_old
+    and #PAD_A
+    bne not_a               ; If held from last frame, don't trigger again
+        jsr Fireball_Attack
+not_a:
 
-    ;DRAW THE 4 SPRITES
+skip_movement:              ; <--- We jump here if player_state is 1 (Attacking)
+    ; Y positions
     lda player_y
     sta oam+0            ; TL
     sta oam+4            ; TR
@@ -137,7 +154,7 @@ not_down:
     sta oam+7            ; TR
     sta oam+15           ; BR
 
-    ; Facing left
+    ; Facing left (Swap X positions of left/right tiles)
     lda player_flip
     beq no_flip
         lda oam+7        ; x+8
@@ -160,20 +177,29 @@ no_flip:
 
 .segment "CODE"
 .proc Update_sprite
-    ;pick which animation should be playing
+    ;Are we attacking?
+    lda player_state
+    beq check_walk                  ; If 0, check walking
+        lda #ANIM_ATTACK
+        jmp set_anim
+
+check_walk:
+    ;Are we walking?
     lda gamepad
     and #(PAD_U|PAD_D|PAD_L|PAD_R)  ; any direction held?
     beq pick_idle
         lda #ANIM_WALK
         jmp set_anim
+
 pick_idle:
+    ;Idle
     lda #ANIM_IDLE
 set_anim:
     cmp anim_base                   ; is this already the current animation?
     beq advance                     ; yes: keep playing it
     sta anim_base                   ; no: switch to it
     lda #0
-    sta anim_frame                  ;restart from its first frame
+    sta anim_frame                  ; restart from its first frame
     sta anim_timer
 
 advance:
@@ -182,15 +208,26 @@ advance:
     lda anim_timer
     cmp #ANIM_DELAY
     bcc write_tiles                 ; not time yet
+    
     lda #0
     sta anim_timer
+    
     inc anim_frame
     lda anim_frame
-    and #%00000011                  ; wrap 4 back to 0
+    cmp #4                          ; Did we reach frame 4?
+    bcc write_tiles                 ; If not, continue normally
+    
+    lda #0                          ; Wrap back to frame 0
     sta anim_frame
+    
+    ; If we just finished an attack, revert state back to normal
+    lda player_state
+    beq write_tiles                 ; If we were already normal, skip
+    lda #0
+    sta player_state                ; Reset to normal state!
 
 write_tiles:
-    ; table index = animation start + current frame
+    ;animation start + current frame
     lda anim_base
     clc
     adc anim_frame
@@ -203,5 +240,13 @@ write_tiles:
     sta oam+9                       ; bottom-left tile ID
     lda frame_br,x
     sta oam+13                      ; bottom-right tile ID
+    rts
+.endproc
+
+.segment "CODE"
+.proc Fireball_Attack
+    lda #1              ; State 1 = Attacking
+    sta player_state
+
     rts
 .endproc
