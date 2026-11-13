@@ -18,6 +18,8 @@ anim_base:  .res 1          ; start offset of the current animation (ANIM_IDLE /
 anim_frame: .res 1          ; current frame within that animation, 0-3
 anim_timer: .res 1          ; game frames until the next animation frame
 
+player_flip:    .res 1 ;0 = facing right, $40 = facing left (OAM flip bit)
+
 .segment "RODATA"
 ; tile ID of each of the 4 sprites, per animation frame
             ;Idle                       ;walking
@@ -59,6 +61,8 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
     lda #0
     sta anim_frame
     sta anim_timer
+    lda #0
+    sta player_flip
 
     rts
 .endproc
@@ -77,6 +81,8 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
     lda gamepad
     and #PAD_R
     beq not_right
+        lda #$00
+        sta player_flip
         lda player_x
         clc
         adc player_speed
@@ -86,6 +92,8 @@ not_right:
     lda gamepad
     and #PAD_L
     beq not_left
+        lda #$40
+        sta player_flip
         lda player_x
         sec
         sbc player_speed
@@ -112,37 +120,40 @@ not_up:
 not_down:
 
     ;DRAW THE 4 SPRITES
-    ; Top-Left
     lda player_y
-    sta oam+0
-    lda player_x
-    sta oam+3
+    sta oam+0            ; TL
+    sta oam+4            ; TR
+    clc
+    adc #8
+    sta oam+8            ; BL
+    sta oam+12           ; BR
 
-    ; Top-Right
-    lda player_y
-    sta oam+4
+    ; X positions: left column at x, right column at x+8
     lda player_x
+    sta oam+3            ; TL
+    sta oam+11           ; BL
     clc
-    adc #8       ; Shift 8 pixels right
-    sta oam+7
+    adc #8
+    sta oam+7            ; TR
+    sta oam+15           ; BR
 
-    ; Bottom-Left
-    lda player_y
-    clc
-    adc #8       ; Shift 8 pixels down
-    sta oam+8
-    lda player_x
-    sta oam+11
+    ; Facing left
+    lda player_flip
+    beq no_flip
+        lda oam+7        ; x+8
+        ldx oam+3        ; x
+        sta oam+3        ; left column now at x+8
+        sta oam+11
+        stx oam+7        ; right column now at x
+        stx oam+15
+no_flip:
 
-    ; Bottom-Right
-    lda player_y
-    clc
-    adc #8       ; Shift 8 pixels down
-    sta oam+12
-    lda player_x
-    clc
-    adc #8       ; Shift 8 pixels right
-    sta oam+15
+    ; Attributes: palette 0 + flip bit
+    lda player_flip
+    sta oam+2
+    sta oam+6
+    sta oam+10
+    sta oam+14
 
     rts
 .endproc
