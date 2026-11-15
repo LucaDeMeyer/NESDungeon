@@ -133,6 +133,7 @@ not_up:
         adc player_speed
         sta player_y
 not_down:
+
     ; Check A 
     lda gamepad
     and #PAD_A
@@ -142,6 +143,30 @@ not_down:
     bne not_a               ; If held from last frame, don't trigger again
         jsr Fireball_Attack
 not_a:
+
+    ;Check select to switch to switch level
+    lda gamepad
+    and #PAD_SELECT
+    beq not_select
+    lda gamepad_old
+    and #PAD_SELECT
+    bne not_select ; If held from last frame, don't trigger again
+        inc current_level
+        lda current_level
+        cmp #NUM_LEVELS
+        bcc load_level ; If current_level < NUM_LEVELS, keep going
+            lda #0
+            sta current_level
+
+load_level:
+    tax
+    lda level_table_lo, x
+    sta nam_ptr
+    lda level_table_hi, X
+    sta nam_ptr+1
+    jsr load_new_screen
+
+not_select:
 
 skip_movement:              ; <--- We jump here if player_state is 1 (Attacking)
     ; Y positions

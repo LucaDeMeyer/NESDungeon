@@ -166,8 +166,8 @@ wait_vblank2:
 		ldx #0
 		stx nmi_ready
 		jmp ppu_update_end
-cont_render:
 
+cont_render:
 	; transfer sprite OAM data using DMA
 	ldx #0
 	stx PPU_SPRRAM_ADDRESS
@@ -182,6 +182,7 @@ cont_render:
 	sta PPU_VRAM_ADDRESS2
 	stx PPU_VRAM_ADDRESS2
 	ldx #0 ; transfer the 32 bytes to VRAM
+
 loop:
 	lda palette, x
 	sta PPU_VRAM_IO
@@ -189,12 +190,20 @@ loop:
 	cpx #32
 	bcc loop
 
+	bit PPU_STATUS          ; Reset PPU write toggle latch
+	lda #0
+	sta PPU_VRAM_ADDRESS1   ; X scroll = 0
+	sta PPU_VRAM_ADDRESS1   ; Y scroll = 0
+	lda #%10001000          ; Select Nametable 0
+	sta PPU_CONTROL
+
 	; enable rendering
 	lda #%00011110
 	sta PPU_MASK
 	; flag PPU update complete
 	ldx #0
 	stx nmi_ready
+
 ppu_update_end:
 
 	; restore registers and return

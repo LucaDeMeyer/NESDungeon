@@ -10,8 +10,12 @@
 ; Import both the background and sprite character sets
 ;*****************************************************************
 
+.segment "ZEROPAGE"
+nam_ptr: .res 2
+current_level: .res 1
+
 .segment "TILES"
-.incbin "NESDungeone.chr"
+.incbin "main.chr"
 
 ;*****************************************************************
 ; Main application logic section includes the game loop
@@ -32,30 +36,19 @@ paletteloop:
 	; clear 1st name table
 	jsr clear_nametable
 
-	; Load our custom 160x160 full screen nametable layout
-	lda PPU_STATUS	; reset address latch
-	lda #$20		; set PPU address to start of Nametable 0 ($2000)
-	sta PPU_VRAM_ADDRESS2
-	lda #$00
-	sta PPU_VRAM_ADDRESS2
-
-	ldx #0
-nametable_loop:
-	lda default_nametable, x       ; First 256 bytes
-	sta PPU_VRAM_IO
-	lda default_nametable+256, x   ; Second 256 bytes
-	sta PPU_VRAM_IO
-	lda default_nametable+512, x   ; Third 256 bytes
-	sta PPU_VRAM_IO
-	lda default_nametable+768, x   ; Fourth 256 bytes (including attributes)
-	sta PPU_VRAM_IO
-	inx
-	bne nametable_loop	; Loops 256 times to transfer all 1024 bytes
+	; Load Level 1 using load_new_screen
+	lda #<default_nametable
+	sta nam_ptr
+	lda #>default_nametable
+	sta nam_ptr+1
+	jsr load_new_screen
 
 	; render here (might need extra level load system)
 	jsr init_player
 	; get the screen to render
 	jsr ppu_update
+
+	
 
 mainloop:
 	; skip reading controls if and change has not been drawn
@@ -71,6 +64,31 @@ mainloop:
 	jmp mainloop
 .endproc
 
+.segment "CODE"
+.proc load_new_screen
+	jsr ppu_off             ; Turn off screen safely on next VBlank
+
+	lda PPU_STATUS
+	lda #$20
+	sta PPU_VRAM_ADDRESS2
+	lda #$00
+	sta PPU_VRAM_ADDRESS2
+
+	ldy #0
+	ldx #4                  ; 4 * 256 = 1024 bytes
+screen_loop:
+	lda (nam_ptr), y
+	sta PPU_VRAM_IO
+	iny
+	bne screen_loop
+	inc nam_ptr+1
+	dex
+	bne screen_loop
+
+	jsr ppu_update          ; Turn screen back on
+	rts
+.endproc
+
 ;*****************************************************************
 ; Our default palette table 16 entries for tiles and 16 entries for sprites
 ;*****************************************************************
@@ -79,7 +97,16 @@ mainloop:
 default_palette:
 .incbin "NESDungeone.pal"
 default_nametable:
-.incbin "NESDungeone.nam"
+.incbin "Level1.nam"
+screen2_nametable:
+.incbin "Level2.nam"
+
+NUM_LEVELS = 2 
+
+level_table_lo:
+	.byte <default_nametable, <screen2_nametable
+level_table_hi:
+	.byte >default_nametable, >screen2_nametable
 
 
 ; 	; now move the bat if left or right pressed

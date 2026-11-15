@@ -43,6 +43,9 @@ PAD_R      = $80
 .globalzp nmi_ready, gamepad, gamepad_old          ; zero page variables
 .global   oam, palette                ; RAM buffers
 .global   ppu_update, ppu_off         ; routines
+;nametables
 .global   clear_nametable, gamepad_poll
+.globalzp nam_ptr, current_level, NUM_LEVELS
+.global level_table_lo, level_table_hi, load_new_screen
 
 .endif
