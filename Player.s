@@ -15,13 +15,18 @@ ANIM_IDLE = 0
 ANIM_WALK = 4
 ANIM_ATTACK = 8
 
+player_state:   .res 1  ; 0 = Normal, 1 = Attacking
+
+.segment "BSS"
+
 anim_base:  .res 1          ; start offset of the current animation (ANIM_IDLE / ANIM_WALK)
 anim_frame: .res 1          ; current frame within that animation, 0-3
 anim_timer: .res 1          ; game frames until the next animation frame
 
 player_flip:    .res 1 ;0 = facing right, $40 = facing left (OAM flip bit)
 
-player_state:   .res 1  ; 0 = Normal, 1 = Attacking
+player_health:   .res 1  ; Player health
+
 .segment "RODATA"
 ; tile ID of each of the 4 sprites, per animation frame
             ;Idle                       ;walking            ;attack
@@ -36,6 +41,9 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
     sta player_x
     sta player_y
     
+    lda #3
+    sta player_health
+
     lda #1       ; Move 1 pixel per frame
     sta player_speed
 
@@ -247,6 +255,6 @@ write_tiles:
 .proc Fireball_Attack
     lda #1              ; State 1 = Attacking
     sta player_state
-
+    
     rts
 .endproc
