@@ -89,14 +89,18 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
 .proc check_input
     ;STATE CHECK
     lda player_state
-    bne skip_movement       ; If state is NOT 0 (attacking), skip reading inputs
+    beq check_controls
+    jmp skip_movement      ; If state is NOT 0 (attacking), skip reading inputs
     ; Check Right
+    check_controls:
     lda gamepad
     and #PAD_R
     beq not_right
         lda #$00
         sta player_flip
         lda player_x
+        cmp #$E6
+        beq skip_movement
         clc
         adc player_speed
         sta player_x
@@ -109,6 +113,8 @@ not_right:
         lda #$40
         sta player_flip
         lda player_x
+        cmp #$09
+        beq skip_movement
         sec
         sbc player_speed
         sta player_x
@@ -119,6 +125,8 @@ not_left:
     and #PAD_U
     beq not_up
         lda player_y
+        cmp #$0D
+        beq skip_movement
         sec
         sbc player_speed
         sta player_y
@@ -129,6 +137,8 @@ not_up:
     and #PAD_D
     beq not_down
         lda player_y
+        cmp #$D0
+        beq skip_movement
         clc
         adc player_speed
         sta player_y
@@ -141,6 +151,7 @@ not_down:
     lda gamepad_old
     and #PAD_A
     bne not_a               ; If held from last frame, don't trigger again
+        
         jsr Fireball_Attack
 not_a:
 
@@ -204,6 +215,9 @@ no_flip:
     sta oam+6
     sta oam+10
     sta oam+14
+
+    lda gamepad
+    sta gamepad_old
 
     rts
 .endproc

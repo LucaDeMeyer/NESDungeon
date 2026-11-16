@@ -174,10 +174,6 @@ cont_render:
 	lda #>oam
 	sta SPRITE_DMA
 
-	; transfer current palette to PPU
-	lda #%10001000; set horizontal nametable increment
-	sta PPU_CONTROL 
-	lda PPU_STATUS
 	lda #$3F ; set PPU address to $3F00
 	sta PPU_VRAM_ADDRESS2
 	stx PPU_VRAM_ADDRESS2
