@@ -9,6 +9,11 @@ player_x:       .res 1 ;player X pos
 player_y:       .res 1 ;player Y pos
 player_speed:   .res 1 ;player speed
 
+col_ptr:        .res 2 ;current collison map
+temp_x:         .res 1
+temp_y:         .res 1
+col_addr:       .res 2 ;address of the current tile
+
 ANIM_DELAY = 20             ; game frames to show each animation frame (60 per second / 20 = 3 anim fps)
 
 ANIM_IDLE = 0
@@ -28,6 +33,8 @@ player_flip:    .res 1 ;0 = facing right, $40 = facing left (OAM flip bit)
 player_health:   .res 1  ; Player health
 
 .segment "RODATA"
+.include "RoomCollisionMaps.asm"
+
 ; tile ID of each of the 4 sprites, per animation frame
             ;Idle                       ;walking            ;attack
 frame_tl: .byte $00, $02, $04, $06,   $20, $22, $24, $26,   $40, $42, $44, $46
@@ -74,6 +81,7 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
     lda #0
     sta player_flip
 
+    jsr Set_Collison_Map
     rts
 .endproc
 
@@ -99,11 +107,15 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
         lda #$00
         sta player_flip
         lda player_x
-        cmp #$E6
-        beq skip_movement
         clc
         adc player_speed
         sta player_x
+        jsr Check_Right_Solid
+        bcc not_right ; no wall, keep new position
+            lda player_x ; hit wall, undo
+            sec
+            sbc player_speed
+            sta player_x
 not_right:
 
     ; Check Left
@@ -113,11 +125,15 @@ not_right:
         lda #$40
         sta player_flip
         lda player_x
-        cmp #$09
-        beq skip_movement
         sec
         sbc player_speed
         sta player_x
+        jsr Check_Left_Solid
+        bcc not_left
+            lda player_x
+            clc
+            adc player_speed
+            sta player_x
 not_left:
 
     ; Check Up
@@ -125,11 +141,16 @@ not_left:
     and #PAD_U
     beq not_up
         lda player_y
-        cmp #$0D
-        beq skip_movement
         sec
         sbc player_speed
         sta player_y
+        jsr Check_Up_Solid
+        bcc not_up
+            lda player_y
+            clc
+            adc player_speed
+            sta player_y
+
 not_up:
 
     ; Check Down
@@ -137,11 +158,15 @@ not_up:
     and #PAD_D
     beq not_down
         lda player_y
-        cmp #$D0
-        beq skip_movement
         clc
         adc player_speed
         sta player_y
+        jsr Check_Down_Solid
+        bcc not_down
+            lda player_y
+            sec
+            sbc player_speed
+            sta player_y
 not_down:
 
     ; Check A 
@@ -175,6 +200,7 @@ load_level:
     sta nam_ptr
     lda level_table_hi, X
     sta nam_ptr+1
+    jsr Set_Collison_Map
     jsr load_new_screen
 
 not_select:
@@ -295,5 +321,147 @@ write_tiles:
     lda #1              ; State 1 = Attacking
     sta player_state
     
+    rts
+.endproc
+
+.segment "CODE"
+.proc Set_Collison_Map
+    lda current_level
+    asl A
+    tax
+    lda RoomTable, X
+    sta col_ptr
+    lda RoomTable+1, X
+    sta col_ptr+1
+    rts
+.endproc
+
+.segment "CODE"
+.proc Check_Solid_Tile
+    ; Calculate (temp_y / 8) * 32 as a 16-bit offset in col_addr
+    lda temp_y
+    and #$F8            ; Clear the bottom 3 bits round down to a multiple of 8
+    sta col_addr
+    lda #0
+    sta col_addr+1      ; Clear the high byte
+
+    asl col_addr        ; Shift the low byte left by 1 bit old bit 7 moves into the Carry flag
+    rol col_addr+1      ; Rotate the high byte left by 1 bit pulling spilled Carry bit into bit 0. Both of these actions multiplied the address by two
+    asl col_addr        ; Do this again to multiply by 4
+    rol col_addr+1 
+
+    ; Add (temp_x / 8) to col_addr
+    lda temp_x
+    lsr A               ; Shift right 1 bit divides X by 2
+    lsr A               ; Shift right 1 bit divides X by 4
+    lsr A               ; Shift right 1 bit divides X by 8
+    clc
+    adc col_addr        ; Add the tile column (A) to the low byte of col_addr
+    sta col_addr
+    lda col_addr+1
+    adc #0              ; Add 0 + the Carry flag if low byte overflowed past 255 this increments high byte by 1
+    sta col_addr+1      ; Save the updated high byte back into col_addr+1
+
+    ;Add base pointer to get final ROM address
+    lda col_addr
+    clc
+    adc col_ptr
+    sta col_addr
+    lda col_addr+1
+    adc col_ptr+1       
+    sta col_addr+1    
+
+    ; Read the tile byte
+    ldy #0
+    lda (col_addr), y
+    beq walkable
+        sec             ; Set carry flag on walk
+        rts
+walkable:
+    clc                 ; Clear carry flag on no walk
+    rts
+.endproc
+
+; Checks top-right (X+15, Y) and bottom-right (X+15, Y+15)
+.segment "CODE"
+.proc Check_Right_Solid
+    lda player_x ; top-right
+    clc
+    adc #15
+    sta temp_x
+
+    lda player_y
+    sta temp_y
+    jsr Check_Solid_Tile
+    bcs blocked
+
+    lda player_y ;bottom-right
+    clc
+    adc #15
+    sta temp_y
+    jsr Check_Solid_Tile
+blocked:
+    rts
+.endproc
+
+; Checks top-left (X, Y) and bottom-left (X, Y+15)
+.segment "CODE"
+.proc Check_Left_Solid
+    lda player_x ; top-left
+    sta temp_x
+
+    lda player_y
+    sta temp_y
+    jsr Check_Solid_Tile
+    bcs @blocked
+
+    lda player_y ; bottom-left
+    clc
+    adc #15
+    sta temp_y
+    jsr Check_Solid_Tile
+@blocked:
+    rts
+.endproc
+
+; Checks top-left (X, Y) and top-right (X+15, Y)
+.segment "CODE"
+.proc Check_Up_Solid
+    lda player_y ; top-left
+    sta temp_y
+
+    lda player_x
+    sta temp_x
+    jsr Check_Solid_Tile
+    bcs @blocked
+
+    lda player_x ; top-right
+    clc
+    adc #15
+    sta temp_x
+    jsr Check_Solid_Tile
+@blocked:
+    rts
+.endproc
+
+; Checks bottom-left (X, Y+15) and bottom-right (X+15, Y+15)
+.segment "CODE"
+.proc Check_Down_Solid
+    lda player_y ; bottom-left
+    clc
+    adc #15
+    sta temp_y
+
+    lda player_x
+    sta temp_x
+    jsr Check_Solid_Tile
+    bcs @blocked
+
+    lda player_x ; bottom-right
+    clc
+    adc #15
+    sta temp_x
+    jsr Check_Solid_Tile
+@blocked:
     rts
 .endproc
