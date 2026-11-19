@@ -130,7 +130,9 @@ screen_loop:
 
 .segment "RODATA"
 default_palette:
-.incbin "NESDungeone.pal"
+;.incbin "NESDungeone.pal"
+.byte $0F,$16,$27,$30,  $0F,$11,$21,$30,  $0F,$19,$29,$30,  $0F,$14,$24,$34 ;temp colors until the actual .pal file is fixed
+.byte $0F,$16,$27,$30,  $0F,$11,$21,$30,  $0F,$19,$29,$30,  $0F,$14,$24,$34
 startScreen:
 .incbin "startScreen.nam"
 default_nametable:
