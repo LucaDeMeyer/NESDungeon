@@ -13,6 +13,10 @@
 .segment "ZEROPAGE"
 nam_ptr: .res 2
 current_level: .res 1
+game_state:    .res 1
+
+STATE_TITLE   = 0
+STATE_PLAYING = 1
 
 .segment "TILES"
 .incbin "main.chr"
@@ -36,15 +40,15 @@ paletteloop:
 	; clear 1st name table
 	jsr clear_nametable
 
-	; Load Level 1 using load_new_screen
-	lda #<default_nametable
-	sta nam_ptr
-	lda #>default_nametable
-	sta nam_ptr+1
-	jsr load_new_screen
+	 lda #<startScreen
+    sta nam_ptr
+    lda #>startScreen
+    sta nam_ptr+1
+    jsr load_new_screen
 
-	; render here (might need extra level load system)
-	jsr init_player
+    lda #STATE_TITLE
+    sta game_state
+
 	; get the screen to render
 	jsr ppu_update
 
@@ -57,12 +61,28 @@ mainloop:
 	bne mainloop
 	; read the gamepad
 	jsr gamepad_poll
-	jsr update_player
-	; ensure our changes are rendered
-	lda #1
-	sta nmi_ready
-	jmp mainloop
+	 lda game_state
+    cmp #STATE_TITLE
+    bne playing
+        jsr update_title
+        jmp done
+playing:
+        jsr update_player
+done:
+    lda #1
+    sta nmi_ready
+    jmp mainloop
 .endproc
+
+.proc update_title
+    lda gamepad
+    and #PAD_START
+    beq not_pressed
+        jsr start_game
+not_pressed:
+    rts
+.endproc
+
 
 .segment "CODE"
 .proc load_new_screen
@@ -89,6 +109,21 @@ screen_loop:
 	rts
 .endproc
 
+
+.proc start_game
+    lda #<default_nametable
+    sta nam_ptr
+    lda #>default_nametable
+    sta nam_ptr+1
+    jsr load_new_screen     ; turns the screen off, loads Level 1, turns it back on
+
+    jsr init_player
+
+    lda #STATE_PLAYING
+    sta game_state
+    rts
+.endproc
+
 ;*****************************************************************
 ; Our default palette table 16 entries for tiles and 16 entries for sprites
 ;*****************************************************************
@@ -96,6 +131,8 @@ screen_loop:
 .segment "RODATA"
 default_palette:
 .incbin "NESDungeone.pal"
+startScreen:
+.incbin "startScreen.nam"
 default_nametable:
 .incbin "Level1.nam"
 screen2_nametable:
