@@ -4,6 +4,7 @@
 
 .include "NESLib.inc"
 .include "Player.inc"
+.include "Enemy.inc"
  
 .export main   
 ;*****************************************************************
@@ -118,6 +119,7 @@ screen_loop:
     jsr load_new_screen     ; turns the screen off, loads Level 1, turns it back on
 
     jsr init_player
+	jsr init_enemy_room1
 
     lda #STATE_PLAYING
     sta game_state
