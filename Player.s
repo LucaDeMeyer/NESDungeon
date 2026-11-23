@@ -395,6 +395,13 @@ walkable:
     jsr Check_Solid_Tile
     bcs blocked
 
+    lda player_y ; middle check
+    clc
+    adc #7
+    sta temp_y
+    jsr Check_Solid_Tile
+    bcs blocked
+
     lda player_y ;bottom-right
     clc
     adc #15
@@ -413,14 +420,21 @@ blocked:
     lda player_y
     sta temp_y
     jsr Check_Solid_Tile
-    bcs @blocked
+    bcs blocked
+
+    lda player_y
+    clc
+    adc #7
+    sta temp_y
+    jsr Check_Solid_Tile
+    bcs blocked
 
     lda player_y ; bottom-left
     clc
     adc #15
     sta temp_y
     jsr Check_Solid_Tile
-@blocked:
+blocked:
     rts
 .endproc
 
@@ -433,14 +447,22 @@ blocked:
     lda player_x
     sta temp_x
     jsr Check_Solid_Tile
-    bcs @blocked
+    bcs blocked
+
+    lda player_x ; middle check
+    clc
+    adc #7
+    sta temp_x
+    jsr Check_Solid_Tile
+    bcs blocked
 
     lda player_x ; top-right
     clc
     adc #15
     sta temp_x
     jsr Check_Solid_Tile
-@blocked:
+    bcs blocked
+blocked:
     rts
 .endproc
 
@@ -455,13 +477,20 @@ blocked:
     lda player_x
     sta temp_x
     jsr Check_Solid_Tile
-    bcs @blocked
+    bcs blocked
+
+    lda player_x ; middle check
+    clc
+    adc #7
+    sta temp_x
+    jsr Check_Solid_Tile
+    bcs blocked
 
     lda player_x ; bottom-right
     clc
     adc #15
     sta temp_x
     jsr Check_Solid_Tile
-@blocked:
+blocked:
     rts
 .endproc
