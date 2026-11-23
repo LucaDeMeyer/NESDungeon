@@ -37,10 +37,10 @@ enemy_health:   .res 1  ; enemy health
 
 ; tile ID of each of the 4 sprites, per animation frame
             ;Idle                       ;walking    
-frame_tl: .byte $00, $02, $04, $06,   $20, $22, $24, $26,
-frame_tr: .byte $01, $03, $05, $07,   $21, $23, $25, $27,
-frame_bl: .byte $10, $12, $14, $16,   $30, $32, $34, $36,
-frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,
+frame_tl: .byte $00, $02, $04, $06,   $20, $22, $24, $26
+frame_tr: .byte $01, $03, $05, $07,   $21, $23, $25, $27
+frame_bl: .byte $10, $12, $14, $16,   $30, $32, $34, $36
+frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
 
 .segment "CODE"
 .proc init_enemy_room1
