@@ -10,7 +10,7 @@ MAX_ENEMIES = 4 ; the amount of enemies in the room with the highest amount of e
 
 .segment "ZEROPAGE"
 
-current_enemies:    .res 2 ;this can change each room 
+current_enemies:    .res 1 ;this can change each room 
 enemy_x:            .res MAX_ENEMIES ;enemy X pos
 enemy_y:            .res MAX_ENEMIES ;enemy Y pos
 enemy_speed:        .res MAX_ENEMIES ;enemy speed (if enemies can have different speeds) idk yet
@@ -44,25 +44,66 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37
 
 .segment "CODE"
 .proc init_enemy_room1
-    lda #$02
+    lda #$01
     sta current_enemies
 
     ; Enemy 0
-    lda #$40
+    lda #150
     sta enemy_x
-    lda #$50
     sta enemy_y
 
-    ; Enemy 1
-    lda #$80
-    sta enemy_x+1
-    lda #$60
-    sta enemy_y+1
+    lda #1
+    sta enemy_speed
+
+    ;enemy y position
+    lda enemy_y
+    sta oam+16       ;top-left y
+    sta oam+20       ;top-right y
+
+    clc
+    adc #8
+    sta oam+24       ;bottom-left y
+    sta oam+28       ;bottom-right y
+
+    ;enemy x position
+    lda enemy_x
+    sta oam+19       ;top-left x
+    sta oam+27       ;bottom-left x
+
+    clc
+    adc #8
+    sta oam+23       ;top-right x
+    sta oam+31       ;bottom-right x
+
+    rts
+.endproc
+
+
+.segment "CODE"
+.proc write_enemy1_tiles
+
+    lda anim_base
+    clc
+    adc anim_frame
+    tax
+
+    lda frame_tl,x
+    sta oam+17
+
+    lda frame_tr,x
+    sta oam+21
+
+    lda frame_bl,x
+    sta oam+25
+
+    lda frame_br,x
+    sta oam+29
 
     rts
 .endproc
 
 .segment "CODE"
 .proc update_enemy
-
+    jsr write_enemy1_tiles
+    rts
 .endproc

@@ -69,6 +69,7 @@ mainloop:
         jmp done
 playing:
         jsr update_player
+		jsr update_enemy
 done:
     lda #1
     sta nmi_ready
