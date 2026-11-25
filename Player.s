@@ -8,6 +8,9 @@
 player_x:       .res 1 ;player X pos
 player_y:       .res 1 ;player Y pos
 player_speed:   .res 1 ;player speed
+fb_x:           .res 1
+fb_y:           .res 1
+fb_active:      .res 1 
 
 col_ptr:        .res 2 ;current collison map
 temp_x:         .res 1
@@ -19,6 +22,10 @@ ANIM_DELAY = 20             ; game frames to show each animation frame (60 per s
 ANIM_IDLE = 0
 ANIM_WALK = 4
 ANIM_ATTACK = 8
+FB_SPEED = 2
+FB_ANIM_DELAY = 4
+FB_TILE = $60
+FB_OAM  = 32
 
 player_state:   .res 1  ; 0 = Normal, 1 = Attacking
 
@@ -29,6 +36,10 @@ anim_frame: .res 1          ; current frame within that animation, 0-3
 anim_timer: .res 1          ; game frames until the next animation frame
 
 player_flip:    .res 1 ;0 = facing right, $40 = facing left (OAM flip bit)
+fb_dx: .res 1    ; -1, 0, or +1
+fb_dy: .res 1
+fb_frame: .res 1
+fb_timer: .res 1
 
 player_health:   .res 1  ; Player health
 
@@ -82,6 +93,7 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
     sta player_flip
 
     jsr Set_Collison_Map
+    jsr fb_clear
     rts
 .endproc
 
@@ -89,6 +101,7 @@ frame_br: .byte $11, $13, $15, $17,   $31, $33, $35, $37,   $51, $53, $55, $57
 ;Move and draw the player 
 .proc update_player
     jsr check_input 
+    jsr update_fireball
     jsr Update_sprite
     rts
 .endproc
@@ -187,6 +200,7 @@ not_a:
     lda gamepad_old
     and #PAD_SELECT
     bne not_select ; If held from last frame, don't trigger again
+        jsr fb_clear
         inc current_level
         lda current_level
         cmp #NUM_LEVELS
@@ -318,9 +332,205 @@ write_tiles:
 
 .segment "CODE"
 .proc Fireball_Attack
-    lda #1              ; State 1 = Attacking
+    lda #1
     sta player_state
-    
+    lda fb_active
+    beq :+ 
+    jmp @done
+    :
+    lda #0
+    sta fb_dx
+    sta fb_dy
+    lda gamepad
+    and #PAD_R
+    beq @no_right
+    lda #1
+    sta fb_dx
+@no_right:
+    lda gamepad
+    and #PAD_L
+    beq @no_left
+    lda #$FF
+    sta fb_dx
+@no_left:
+    lda gamepad
+    and #PAD_D
+    beq @no_down
+    lda #1
+    sta fb_dy
+@no_down:
+    lda gamepad
+    and #PAD_U
+    beq @no_up
+    lda #$FF
+    sta fb_dy
+@no_up:
+    lda fb_dx
+    ora fb_dy
+    bne @have_dir
+    lda player_flip
+    bne @face_left
+    lda #1
+    sta fb_dx
+    jmp @have_dir
+@face_left:
+    lda #$FF
+    sta fb_dx
+@have_dir:
+    lda fb_active
+    bne @done
+    lda player_y
+    clc
+    adc #4
+    bcs @done
+    sta fb_y
+    lda fb_dx
+    bmi @spawn_left
+    beq @spawn_x_center
+    lda player_x
+    clc
+    adc #16
+    bcs @done
+    sta fb_x
+    jmp @spawn_x_done
+@spawn_left:
+    lda player_x
+    sec
+    sbc #8
+    bcc @done
+    sta fb_x
+    jmp @spawn_x_done
+    @spawn_x_center:
+    lda player_x
+    sta fb_x
+@spawn_x_done:
+    lda fb_dy
+    bmi @spawn_up
+    beq @spawn
+    lda fb_y
+    clc
+    adc #8
+    bcs @done
+    sta fb_y
+    jmp @spawn
+@spawn_up:
+    lda fb_y
+    sec
+    sbc #8
+    bcc @done
+    sta fb_y
+@spawn:
+    lda #1
+    sta fb_active
+    lda #0
+    sta fb_frame
+    sta fb_timer
+@done:
+    rts
+.endproc
+.proc fb_clear
+    lda #0
+    sta fb_active
+    lda #255
+    sta oam+FB_OAM
+    rts
+.endproc
+.proc update_fireball
+    lda fb_active
+    bne :+
+    jmp @hide
+    :
+    inc fb_timer
+    lda fb_timer
+    cmp #FB_ANIM_DELAY
+    bcc @move
+    lda #0
+    sta fb_timer
+    inc fb_frame
+    lda fb_frame
+    and #3
+    sta fb_frame
+@move:
+    lda fb_dx
+    beq @move_y
+    bmi @move_left
+    lda fb_x
+    clc
+    adc #FB_SPEED
+    bcs @despawn
+    sta fb_x
+    jmp @move_y
+@move_left:
+    lda fb_x
+    cmp #FB_SPEED
+    bcc @despawn
+    sec
+    sbc #FB_SPEED
+    sta fb_x
+@move_y:
+    lda fb_dy
+    beq @hit
+    bmi @move_up
+    lda fb_y
+    clc
+    adc #FB_SPEED
+    bcs @despawn
+    sta fb_y
+    jmp @hit
+@move_up:
+    lda fb_y
+    cmp #FB_SPEED
+    bcc @despawn
+    sec
+    sbc #FB_SPEED
+    sta fb_y
+@hit:
+    lda fb_x
+    sta temp_x
+    lda fb_y
+    sta temp_y
+    lda fb_dx
+    beq @y_edge
+    bmi @hit_y
+    lda fb_x
+    clc
+    adc #7
+    bcs @despawn
+    sta temp_x
+@hit_y:
+    jsr Check_Solid_Tile
+    bcs @despawn
+@y_edge:
+    lda fb_y
+    sta temp_y
+    lda fb_dy
+    beq @draw
+    bmi @check_y
+    lda fb_y
+    clc
+    adc #7
+    sta temp_y
+@check_y:
+    jsr Check_Solid_Tile
+    bcs @despawn
+@draw:
+    lda fb_y
+    sta oam+FB_OAM
+    lda fb_frame
+    clc
+    adc #FB_TILE
+    sta oam+FB_OAM+1
+    lda #$02
+    sta oam+FB_OAM+2
+    lda fb_x
+    sta oam+FB_OAM+3
+    rts
+@despawn:
+    lda #0
+    sta fb_active
+@hide:
+    lda #255
+    sta oam+FB_OAM
     rts
 .endproc
 
