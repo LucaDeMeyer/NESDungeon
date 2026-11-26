@@ -215,7 +215,7 @@ load_level:
     sta nam_ptr+1
     jsr Set_Collison_Map
     jsr load_new_screen
-
+    ; HUD update -> for later :)
 not_select:
 
 skip_movement:              ; <--- We jump here if player_state is 1 (Attacking)

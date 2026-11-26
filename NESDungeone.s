@@ -123,11 +123,6 @@ screen_loop:
     jsr load_new_screen     ; turns the screen off, loads Level 1, turns it back on
 	jsr init_hud  
 
-	lda #42 ; HUD TEST CODE
-    jsr add_score
-    lda #3
-    jsr set_room
-
     jsr init_player
 	jsr init_enemy_room1
 
@@ -136,6 +131,13 @@ screen_loop:
     rts
 .endproc
 
+.proc update_room_hud
+    lda current_level
+    clc
+    adc #1                  ; 0-based index -> 1-based room number
+    jsr set_room
+    rts
+.endproc
 
 ; A = points to add (0-99). Caps at 9999.
 .proc add_score
@@ -182,14 +184,17 @@ screen_loop:
 
 ; A = room number (0-99)
 .proc set_room
+    lda current_level
+    clc
+    adc #1                  ; 0-based index -> 1-based room number
     ldx #0
-:   cmp #10
+:   cmp #10                 ; split into tens (X) and ones (A)
     bcc :+
     sbc #10
     inx
     bne :-
-:   sta room+1          ; ones
-    stx room+0          ; tens
+:   sta room+1              ; ones
+    stx room+0              ; tens
     lda #1
     sta hud_dirty
     rts
