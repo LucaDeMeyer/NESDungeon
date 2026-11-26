@@ -47,5 +47,6 @@ DIGIT_BASE = $C2
 .global   clear_nametable, gamepad_poll
 .globalzp nam_ptr, current_level, NUM_LEVELS, hud_dirty, score, room
 .global level_table_lo, level_table_hi, load_new_screen
+.globalzp x_check, y_check
 
 .endif
