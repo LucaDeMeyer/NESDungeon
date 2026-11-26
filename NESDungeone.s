@@ -125,8 +125,10 @@ screen_loop:
 
 	lda #42 ; HUD TEST CODE
     jsr add_score
-    lda #3
-    jsr set_room
+     lda #0
+    sta current_level       ; index 0 = Level1.nam + Level 1 collisions
+
+    jsr update_room_hud
 
     jsr init_player
 	jsr init_enemy_room1
@@ -136,6 +138,13 @@ screen_loop:
     rts
 .endproc
 
+.proc update_room_hud
+    lda current_level
+    clc
+    adc #1                  ; 0-based index -> 1-based room number
+    jsr set_room
+    rts
+.endproc
 
 ; A = points to add (0-99). Caps at 9999.
 .proc add_score
