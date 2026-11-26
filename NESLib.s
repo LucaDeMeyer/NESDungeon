@@ -186,6 +186,42 @@ loop:
 	cpx #32
 	bcc loop
 
+	lda hud_dirty
+	beq no_hud
+
+	bit PPU_STATUS
+	lda #$20
+	sta PPU_VRAM_ADDRESS2
+	lda #$0F            ; room: $200F (row 0, column 15)
+	sta PPU_VRAM_ADDRESS2
+	ldx #0
+room_loop:
+	lda room, x
+	clc
+	adc #DIGIT_BASE
+	sta PPU_VRAM_IO
+	inx
+	cpx #2
+	bne room_loop
+
+	lda #$20
+	sta PPU_VRAM_ADDRESS2
+	lda #$1B            ; score: $201B (row 0, column 27)
+	sta PPU_VRAM_ADDRESS2
+	ldx #0
+score_loop:
+	lda score, x
+	clc
+	adc #DIGIT_BASE
+	sta PPU_VRAM_IO
+	inx
+	cpx #4
+	bne score_loop
+
+	lda #0
+	sta hud_dirty
+no_hud:
+
 	bit PPU_STATUS          ; Reset PPU write toggle latch
 	lda #0
 	sta PPU_VRAM_ADDRESS1   ; X scroll = 0

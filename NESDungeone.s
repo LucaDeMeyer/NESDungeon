@@ -15,6 +15,9 @@
 nam_ptr: .res 2
 current_level: .res 1
 game_state:    .res 1
+hud_dirty: .res 1
+score:     .res 4       ; [0]=thousands [1]=hundreds [2]=tens [3]=ones, each 0-9
+room:      .res 2 		;[0]=tens [1]=ones
 
 STATE_TITLE   = 0
 STATE_PLAYING = 1
@@ -118,12 +121,87 @@ screen_loop:
     lda #>default_nametable
     sta nam_ptr+1
     jsr load_new_screen     ; turns the screen off, loads Level 1, turns it back on
+	jsr init_hud  
+
+	lda #42 ; HUD TEST CODE
+    jsr add_score
+    lda #3
+    jsr set_room
 
     jsr init_player
 	jsr init_enemy_room1
 
     lda #STATE_PLAYING
     sta game_state
+    rts
+.endproc
+
+
+; A = points to add (0-99). Caps at 9999.
+.proc add_score
+    ldx #0
+:   cmp #10             ; split A into tens (X) and ones (A)
+    bcc :+
+    sbc #10
+    inx
+    bne :-
+:   clc
+    adc score+3         ; ones
+    cmp #10
+    bcc :+
+    sbc #10             ; carry stays set
+:   sta score+3
+    txa                 ; carry from ones flows into this adc
+    adc score+2         ; tens
+    cmp #10
+    bcc :+
+    sbc #10
+:   sta score+2
+    lda score+1         ; hundreds
+    adc #0
+    cmp #10
+    bcc :+
+    sbc #10
+:   sta score+1
+    lda score+0         ; thousands
+    adc #0
+    cmp #10
+    bcc :+
+    sbc #10
+:   sta score+0
+    bcc :+              ; carry set here means we passed 9999
+        lda #9
+        sta score+0
+        sta score+1
+        sta score+2
+        sta score+3
+:   lda #1
+    sta hud_dirty
+    rts
+.endproc
+
+; A = room number (0-99)
+.proc set_room
+    ldx #0
+:   cmp #10
+    bcc :+
+    sbc #10
+    inx
+    bne :-
+:   sta room+1          ; ones
+    stx room+0          ; tens
+    lda #1
+    sta hud_dirty
+    rts
+.endproc
+
+.proc init_hud
+    lda #0
+    sta score+0
+    sta score+1
+    sta score+2
+    sta score+3
+    jsr set_room        ; A = 0, also sets hud_dirty
     rts
 .endproc
 

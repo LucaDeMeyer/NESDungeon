@@ -35,7 +35,7 @@ PAD_D      = $20
 PAD_L      = $40
 PAD_R      = $80
 
-
+DIGIT_BASE = $C2   
 ;*****************************************************************
 ; Shared symbols defined in NESLib.s
 ; (.global = "export it if defined in this file, otherwise import it")
@@ -45,7 +45,7 @@ PAD_R      = $80
 .global   ppu_update, ppu_off         ; routines
 ;nametables
 .global   clear_nametable, gamepad_poll
-.globalzp nam_ptr, current_level, NUM_LEVELS
+.globalzp nam_ptr, current_level, NUM_LEVELS, hud_dirty, score, room
 .global level_table_lo, level_table_hi, load_new_screen
 
 .endif
