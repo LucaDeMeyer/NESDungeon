@@ -485,9 +485,9 @@ write_tiles:
     sta fb_y
 @hit:
     lda fb_x
-    sta temp_x
+    sta x_check
     lda fb_y
-    sta temp_y
+    sta y_check
     lda fb_dx
     beq @y_edge
     bmi @hit_y
@@ -495,20 +495,20 @@ write_tiles:
     clc
     adc #7
     bcs @despawn
-    sta temp_x
+    sta x_check
 @hit_y:
     jsr Check_Solid_Tile
     bcs @despawn
 @y_edge:
     lda fb_y
-    sta temp_y
+    sta y_check
     lda fb_dy
     beq @draw
     bmi @check_y
     lda fb_y
     clc
     adc #7
-    sta temp_y
+    sta y_check
 @check_y:
     jsr Check_Solid_Tile
     bcs @despawn
